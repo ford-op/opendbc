@@ -8,6 +8,7 @@ from opendbc.car.ford.fordcan import CanBus
 from opendbc.car.ford.radar_interface import RadarInterface
 from opendbc.car.ford.values import CarControllerParams, DBC, Ecu, FordFlags, RADAR, FordSafetyFlags
 from opendbc.car.interfaces import CarInterfaceBase
+from opendbc.sunnypilot.car.ford.bluepilot.interfaces_ext import apply_ford_ext_params
 
 TransmissionType = structs.CarParams.TransmissionType
 
@@ -98,4 +99,7 @@ class CarInterface(CarInterfaceBase):
 
     ret.autoResumeSng = ret.minEnableSpeed == -1.
     ret.centerToFront = ret.wheelbase * 0.44
+
+    # BluePilot: the alpha toggle decides openpilot longitudinal vs stock ACC on every Ford
+    apply_ford_ext_params(ret, alpha_long)
     return ret

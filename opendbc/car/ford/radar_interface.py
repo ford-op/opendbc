@@ -9,6 +9,7 @@ from opendbc.car.common.conversions import Conversions as CV
 from opendbc.car.ford.fordcan import CanBus
 from opendbc.car.ford.values import DBC, RADAR
 from opendbc.car.interfaces import RadarInterfaceBase
+from opendbc.sunnypilot.car.ford.bluepilot.radar_ext import STEER_ASSIST_DATA_ADDR, SteerAssistRadar, create_steer_assist_data_parser
 
 DELPHI_ESR_RADAR_MSGS = list(range(0x500, 0x540))
 
@@ -110,6 +111,10 @@ class RadarInterface(RadarInterfaceBase):
     elif self.radar == RADAR.DELPHI_MRR:
       self.rcp = _create_delphi_mrr_radar_can_parser(CP)
       self.trigger_msg = DELPHI_MRR_RADAR_HEADER_ADDR
+    elif self.radar == RADAR.STEER_ASSIST_DATA:  # BluePilot
+      self.rcp = create_steer_assist_data_parser(CP)
+      self.trigger_msg = STEER_ASSIST_DATA_ADDR
+      self.steer_assist = SteerAssistRadar()
     else:
       raise ValueError(f"Unsupported radar: {self.radar}")
 
@@ -134,6 +139,8 @@ class RadarInterface(RadarInterfaceBase):
       _update = self._update_delphi_mrr(ret)
       if not _update:
         return None
+    elif self.radar == RADAR.STEER_ASSIST_DATA:  # BluePilot
+      self.steer_assist.update(self.rcp.vl["Steer_Assist_Data"], self.pts)
 
     ret.points = list(self.pts.values())
     return ret
