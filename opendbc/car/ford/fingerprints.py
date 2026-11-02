@@ -230,3 +230,8 @@ FW_VERSIONS = {
     ],
   },
 }
+
+# BluePilot: merge the BluePilot-only firmware (sunnypilot/car/ford/fingerprints_ext.py)
+from opendbc.sunnypilot.car.fingerprints_ext import merge_fw_versions
+from opendbc.sunnypilot.car.ford.fingerprints_ext import FW_VERSIONS_EXT
+FW_VERSIONS = merge_fw_versions(FW_VERSIONS, FW_VERSIONS_EXT)
