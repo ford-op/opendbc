@@ -349,6 +349,13 @@ static safety_config ford_init(uint16_t param) {
     {FORD_LateralMotionControl, 0, 8, .check_relay = true},
   };
 
+  // BluePilot (bp-full): a CAN Ford running the car's own ACC (alpha longitudinal off): no ACCDATA,
+  // so the camera's ACCDATA is forwarded to the car
+  static const CanMsg FORD_STOCK_TX_MSGS[] = {
+    FORD_COMMON_TX_MSGS
+    {FORD_LateralMotionControl, 0, 8, .check_relay = true},
+  };
+
   const uint16_t FORD_PARAM_CANFD = 2;
   const bool ford_canfd = GET_FLAG(param, FORD_PARAM_CANFD);
 
@@ -362,7 +369,14 @@ static safety_config ford_init(uint16_t param) {
     }
 #endif
   } else {
-    ret = BUILD_SAFETY_CFG(ford_rx_checks, FORD_LONG_TX_MSGS);
+    // BluePilot (bp-full): BluePilot's own bit, set only when the alpha longitudinal toggle is off;
+    // without it a CAN Ford is upstream's (always the longitudinal TX set)
+    const uint16_t FORD_PARAM_BP_STOCK_LONG = 0x8000U;
+    if (GET_FLAG(param, FORD_PARAM_BP_STOCK_LONG)) {
+      ret = BUILD_SAFETY_CFG(ford_rx_checks, FORD_STOCK_TX_MSGS);
+    } else {
+      ret = BUILD_SAFETY_CFG(ford_rx_checks, FORD_LONG_TX_MSGS);
+    }
   }
 
   // BluePilot: SP safety param (BP lateral, pinion source); the pinion RX check applies only when it is consumed
