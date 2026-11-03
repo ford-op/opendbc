@@ -55,6 +55,7 @@ class FordFlags(IntFlag):
 class RADAR:
   DELPHI_ESR = 'ford_fusion_2018_adas'
   DELPHI_MRR = 'FORD_CADS'
+  STEER_ASSIST_DATA = 'ford_lincoln_base_pt'  # BluePilot: camera's lead object as radar (sunnypilot/car/ford/bluepilot/radar_ext.py)
 
 
 class Footnote(Enum):
@@ -103,6 +104,7 @@ class FordPlatformConfig(PlatformConfig):
 class FordCANFDPlatformConfig(FordPlatformConfig):
   dbc_dict: DbcDict = field(default_factory=lambda: {
     Bus.pt: 'ford_lincoln_base_pt',
+    Bus.radar: RADAR.STEER_ASSIST_DATA,  # BluePilot
   })
 
   def init(self):
