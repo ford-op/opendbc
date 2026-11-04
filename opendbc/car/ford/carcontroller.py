@@ -6,6 +6,8 @@ from opendbc.car.ford import fordcan
 from opendbc.car.ford.values import CarControllerParams, FordFlags, CAR
 from opendbc.car.interfaces import CarControllerBase, V_CRUISE_MAX
 from opendbc.bluepilot_lateral.hosts.sunnypilot.lateral import BluePilotLateral  # BluePilot
+from opendbc.sunnypilot.car.ford.bluepilot import fordcan_ext  # BluePilot (bp-full)
+from opendbc.sunnypilot.car.ford.bluepilot.longitudinal_ext import LongitudinalExt  # BluePilot (bp-full)
 
 LongCtrlState = structs.CarControl.Actuators.LongControlState
 VisualAlert = structs.CarControl.HUDControl.VisualAlert
@@ -39,6 +41,7 @@ class CarController(CarControllerBase):
     self.packer = CANPacker(dbc_names[Bus.pt])
     self.CAN = fordcan.CanBus(CP)
     self.bp = BluePilotLateral(CP, CP_SP, self.packer, self.CAN)  # BluePilot
+    self.bp_long = LongitudinalExt()  # BluePilot (bp-full)
 
     self.apply_curvature_last = 0
     self.anti_overshoot_curvature_last = 0
@@ -153,7 +156,10 @@ class CarController(CarControllerBase):
 
       stopping = CC.actuators.longControlState == LongCtrlState.stopping
       # TODO: look into using the actuators packet to send the desired speed
-      can_sends.append(fordcan.create_acc_msg(self.packer, self.CAN, CC.longActive, gas, accel, stopping, self.brake_request, v_ego_kph=V_CRUISE_MAX))
+      # BluePilot (bp-full): BP longitudinal and its own brake/pre-charge requests replace brake_request above
+      accel, gas, brake_actuate, precharge_actuate = self.bp_long.update(CC, CC_SP, CS, accel, gas, accel_due_to_pitch)
+      can_sends.append(fordcan_ext.create_acc_msg(self.packer, self.CAN, CC.longActive, gas, accel, stopping,
+                                                  brake_actuate, precharge_actuate, v_ego_kph=V_CRUISE_MAX))
 
       self.accel = accel
       self.gas = gas
