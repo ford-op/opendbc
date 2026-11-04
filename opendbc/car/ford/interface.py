@@ -101,5 +101,5 @@ class CarInterface(CarInterfaceBase):
     ret.centerToFront = ret.wheelbase * 0.44
 
     # BluePilot: the alpha toggle decides openpilot longitudinal vs stock ACC on every Ford
-    apply_ford_ext_params(ret, alpha_long)
+    apply_ford_ext_params(ret, alpha_long, fingerprint)
     return ret
