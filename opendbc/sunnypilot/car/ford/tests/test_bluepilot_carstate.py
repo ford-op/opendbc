@@ -108,12 +108,14 @@ class TestCarStateExt(unittest.TestCase):
         self.assertTrue(bp["brakeLightStatus"]["brakeLightsOn"])
 
   def test_optional_messages_never_required(self):
-    # a car without the hybrid, lamp or (CAN Ford) sign recognition messages keeps CAN validity
-    CP, CS = _car_state(CAR.FORD_ESCAPE_MK4, (0x365, 0x07A, 0x24B, 0x24C))
-    pt, cam = CS.get_can_parsers(CP, structs.CarParamsSP()).values()
-    for p in (pt, cam):
-      required = {s.name for s in p.message_states.values() if not s.ignore_alive}
-      self.assertFalse(required & {"Cluster_HEV_Data2", "Battery_Traction_1_FD1", "BCM_Lamp_Stat_FD1", "Traffic_RecognitnData"})
+    # a car without the hybrid, lamp or sign recognition messages keeps CAN validity, CAN and CAN FD alike
+    for car in (CAR.FORD_ESCAPE_MK4, CAR.FORD_F_150_MK14):
+      with self.subTest(car=car):
+        CP, CS = _car_state(car, (0x365, 0x07A, 0x24B, 0x24C))
+        pt, cam = CS.get_can_parsers(CP, structs.CarParamsSP()).values()
+        for p in (pt, cam):
+          required = {s.name for s in p.message_states.values() if not s.ignore_alive}
+          self.assertFalse(required & {"Cluster_HEV_Data2", "Battery_Traction_1_FD1", "BCM_Lamp_Stat_FD1", "Traffic_RecognitnData"})
 
 
 if __name__ == '__main__':

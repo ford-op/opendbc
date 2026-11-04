@@ -14,7 +14,7 @@ from collections import namedtuple
 
 from opendbc.car import structs
 from opendbc.car.common.conversions import Conversions as CV
-from opendbc.car.ford.values import CAR, FordFlags
+from opendbc.car.ford.values import CAR
 
 ButtonType = structs.CarState.ButtonEvent.Type
 Button = namedtuple('Button', ['event_type', 'can_addr', 'can_msg', 'values'])
@@ -62,8 +62,8 @@ def can_messages(CP) -> tuple[list, list]:
     pt.append(("Cluster_HEV_Data2", float('nan')))
   if CP.flags & FORD_FLAG_BP_HEV_BATTERY_DATA:
     pt += [(m, float('nan')) for m in ("Battery_Traction_1_FD1", "Battery_Traction_3_FD1", "Battery_Traction_4_FD1", "MtrTracData_1_FD1")]
-  # the posted limit: required on CAN FD (as BP7), optional on CAN Fords, where only some trims send it
-  cam = [("Traffic_RecognitnData", 1 if CP.flags & FordFlags.CANFD else float('nan'))]
+  # the posted limit: optional on every Ford (BP7 required it on CAN FD, so a CAN FD Ford without sign recognition lost CAN validity)
+  cam = [("Traffic_RecognitnData", float('nan'))]
   return pt, cam
 
 
