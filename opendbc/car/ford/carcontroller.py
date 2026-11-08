@@ -8,6 +8,7 @@ from opendbc.car.interfaces import CarControllerBase, V_CRUISE_MAX
 from opendbc.bluepilot_lateral.hosts.sunnypilot.lateral import BluePilotLateral  # BluePilot
 from opendbc.sunnypilot.car.ford.bluepilot import fordcan_ext  # BluePilot (bp-full)
 from opendbc.sunnypilot.car.ford.bluepilot.longitudinal_ext import LongitudinalExt  # BluePilot (bp-full)
+from opendbc.sunnypilot.car.ford.bluepilot.icbm import IcbmExt  # BluePilot (bp-full)
 
 LongCtrlState = structs.CarControl.Actuators.LongControlState
 VisualAlert = structs.CarControl.HUDControl.VisualAlert
@@ -42,6 +43,7 @@ class CarController(CarControllerBase):
     self.CAN = fordcan.CanBus(CP)
     self.bp = BluePilotLateral(CP, CP_SP, self.packer, self.CAN)  # BluePilot
     self.bp_long = LongitudinalExt()  # BluePilot (bp-full)
+    self.bp_icbm = IcbmExt()  # BluePilot (bp-full)
 
     self.apply_curvature_last = 0
     self.anti_overshoot_curvature_last = 0
@@ -76,6 +78,7 @@ class CarController(CarControllerBase):
     # the stock system checks for steering pressed, and eventually disengages cruise control
     elif CS.acc_tja_status_stock_values["Tja_D_Stat"] != 0 and (self.frame % CarControllerParams.ACC_UI_STEP) == 0:
       can_sends.append(fordcan.create_button_msg(self.packer, self.CAN.camera, CS.buttons_stock_values, tja_toggle=True))
+    can_sends.extend(self.bp_icbm.update(CC_SP, CS, self.packer, self.CAN, self.frame))  # BluePilot (bp-full): ICBM set-speed presses
 
     ### lateral control ###
     # send steer msg at 20Hz

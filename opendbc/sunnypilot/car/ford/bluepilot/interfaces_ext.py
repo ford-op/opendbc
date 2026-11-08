@@ -37,3 +37,8 @@ def apply_ford_ext_params(ret: structs.CarParams, alpha_long: bool, fingerprint)
     ret.flags |= FORD_FLAG_BP_HEV_CLUSTER_DATA
   if all(addr in main_bus for addr in (0x07A, 0x24B, 0x24C)):  # Battery_Traction_1/3/4_FD1
     ret.flags |= FORD_FLAG_BP_HEV_BATTERY_DATA
+
+
+def apply_ford_ext_params_sp(ret: structs.CarParamsSP) -> None:
+  """Called at the end of CarInterface._get_params_sp() in opendbc/car/ford/interface.py."""
+  ret.intelligentCruiseButtonManagementAvailable = True  # ICBM: sunnypilot/car/ford/bluepilot/icbm.py
