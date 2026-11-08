@@ -8,9 +8,9 @@
 .github/workflows/update-cars-docs.yml # upstream automation, inert in forks
 .github/workflows/update-uv-lock.yml   # upstream automation, inert in forks
 opendbc/car/car_helpers.py             # bp-full: VIN in the "no fingerprint" log (#16)
-opendbc/car/ford/carcontroller.py      # one BluePilotLateral object, stock path as the fallback (#45); bp-full: BP longitudinal sends ACCDATA (sunnypilot/car/ford/bluepilot/longitudinal_ext.py) (#16)
+opendbc/car/ford/carcontroller.py      # one BluePilotLateral object, stock path as the fallback (#45); bp-full: BP longitudinal sends ACCDATA (sunnypilot/car/ford/bluepilot/longitudinal_ext.py), ICBM set-speed presses (sunnypilot/car/ford/bluepilot/icbm.py) (#16)
 opendbc/car/ford/carstate.py           # bp-full: cruise buttons, posted limit, hybrid values (sunnypilot/car/ford/bluepilot/carstate_ext.py) (#16)
-opendbc/car/ford/interface.py          # bp-full: the alpha toggle decides openpilot long vs stock ACC (sunnypilot/car/ford/bluepilot/interfaces_ext.py) (#16)
+opendbc/car/ford/interface.py          # bp-full: the alpha toggle decides openpilot long vs stock ACC (sunnypilot/car/ford/bluepilot/interfaces_ext.py); every Ford ICBM-available (#16)
 opendbc/car/ford/fingerprints.py       # bp-full: merge the BluePilot-only firmware from sunnypilot/car/ford/fingerprints_ext.py (#16)
 opendbc/car/ford/radar_interface.py    # bp-full: Steer_Assist_Data as a one-track radar on CAN FD (sunnypilot/car/ford/bluepilot/radar_ext.py) (#16)
 opendbc/car/ford/values.py             # bp-full: VIN fallback hook, non-essential Lightning/Expedition EPS, Steer_Assist_Data radar on CAN FD (#16)

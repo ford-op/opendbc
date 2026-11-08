@@ -8,7 +8,7 @@ from opendbc.car.ford.fordcan import CanBus
 from opendbc.car.ford.radar_interface import RadarInterface
 from opendbc.car.ford.values import CarControllerParams, DBC, Ecu, FordFlags, RADAR, FordSafetyFlags
 from opendbc.car.interfaces import CarInterfaceBase
-from opendbc.sunnypilot.car.ford.bluepilot.interfaces_ext import apply_ford_ext_params
+from opendbc.sunnypilot.car.ford.bluepilot.interfaces_ext import apply_ford_ext_params, apply_ford_ext_params_sp
 
 TransmissionType = structs.CarParams.TransmissionType
 
@@ -102,4 +102,10 @@ class CarInterface(CarInterfaceBase):
 
     # BluePilot: the alpha toggle decides openpilot longitudinal vs stock ACC on every Ford
     apply_ford_ext_params(ret, alpha_long, fingerprint)
+    return ret
+
+  @staticmethod
+  def _get_params_sp(stock_cp: structs.CarParams, ret: structs.CarParamsSP, candidate, fingerprint: dict[int, dict[int, int]],
+                     car_fw: list[structs.CarParams.CarFw], alpha_long: bool, is_release_sp: bool, docs: bool) -> structs.CarParamsSP:
+    apply_ford_ext_params_sp(ret)  # BluePilot (bp-full): every Ford ICBM-available
     return ret
