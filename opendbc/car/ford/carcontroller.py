@@ -9,6 +9,7 @@ from opendbc.bluepilot_lateral.hosts.sunnypilot.lateral import BluePilotLateral 
 from opendbc.sunnypilot.car.ford.bluepilot import fordcan_ext  # BluePilot (bp-full)
 from opendbc.sunnypilot.car.ford.bluepilot.longitudinal_ext import LongitudinalExt  # BluePilot (bp-full)
 from opendbc.sunnypilot.car.ford.bluepilot.icbm import IcbmExt  # BluePilot (bp-full)
+from opendbc.sunnypilot.car.ford.bluepilot.hud_ext import HudExt  # BluePilot (bp-full)
 
 LongCtrlState = structs.CarControl.Actuators.LongControlState
 VisualAlert = structs.CarControl.HUDControl.VisualAlert
@@ -44,6 +45,7 @@ class CarController(CarControllerBase):
     self.bp = BluePilotLateral(CP, CP_SP, self.packer, self.CAN)  # BluePilot
     self.bp_long = LongitudinalExt()  # BluePilot (bp-full)
     self.bp_icbm = IcbmExt()  # BluePilot (bp-full)
+    self.bp_hud = HudExt(CP)  # BluePilot (bp-full)
 
     self.apply_curvature_last = 0
     self.anti_overshoot_curvature_last = 0
@@ -168,26 +170,8 @@ class CarController(CarControllerBase):
       self.gas = gas
 
     ### ui ###
-    send_ui = (self.main_on_last != main_on) or (self.lkas_enabled_last != CC.latActive) or (self.steer_alert_last != steer_alert)
-    # send lkas ui msg at 1Hz or if ui state changes
-    if (self.frame % CarControllerParams.LKAS_UI_STEP) == 0 or send_ui:
-      can_sends.append(fordcan.create_lkas_ui_msg(self.packer, self.CAN, main_on, CC.latActive, steer_alert, hud_control, CS.lkas_status_stock_values))
-
-    # send acc ui msg at 5Hz or if ui state changes
-    if hud_control.leadDistanceBars != self.lead_distance_bars_last:
-      send_ui = True
-      self.distance_bar_frame = self.frame
-
-    if (self.frame % CarControllerParams.ACC_UI_STEP) == 0 or send_ui:
-      show_distance_bars = self.frame - self.distance_bar_frame < 400
-      can_sends.append(fordcan.create_acc_ui_msg(self.packer, self.CAN, self.CP, main_on, CC.latActive,
-                                                 fcw_alert, CS.out.cruiseState.standstill, show_distance_bars,
-                                                 hud_control, CS.acc_tja_status_stock_values))
-
-    self.main_on_last = main_on
-    self.lkas_enabled_last = CC.latActive
-    self.steer_alert_last = steer_alert
-    self.lead_distance_bars_last = hud_control.leadDistanceBars
+    # BluePilot (bp-full): BP7's cluster display replaces upstream's UI block (sunnypilot/car/ford/bluepilot/hud_ext.py)
+    can_sends.extend(self.bp_hud.update(CC, CC_SP, CS, main_on, steer_alert, fcw_alert, self.packer, self.CAN, self.frame))
 
     new_actuators = actuators.as_builder()
     new_actuators.curvature = self.apply_curvature_last
