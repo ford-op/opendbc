@@ -91,10 +91,12 @@ class TestDelphiMrrRadarHold(unittest.TestCase):
     self.assertFalse(rd.errors.radarUnavailableTemporary)
     self.assertEqual([round(p.dRel, 2) for p in rd.points], [40.0])
 
-  def freeze_then_recover(self):
+  def freeze_then_recover(self, during_hold=False):
     """A freeze stuck at scan 1, then recovery: returns the HOLD + 1 frames after the freeze.
     Stuck at 1, the hold covers scans 2..34 and the frame after it is a scan-3 (publishing) frame."""
-    self.assert_held(self.freeze(1, 5)[-1])  # the 5th repeat trips
+    frozen = self.freeze(1, 5)
+    for rd in (frozen if during_hold else frozen[-1:]):  # the 5th repeat trips; during a hold every repeat is held
+      self.assert_held(rd)
     return [self.step((2 + i) % 4) for i in range(self.HOLD + 1)]
 
   def start(self):
@@ -119,11 +121,21 @@ class TestDelphiMrrRadarHold(unittest.TestCase):
     self.freeze(1, 5)
     for scan in (2, 3, 0, 1, 2, 3, 0, 1):  # 8 frames into the first hold
       self.assert_held(self.step(scan))
-    after = self.freeze_then_recover()  # a second freeze: a full hold again from its recovery
+    after = self.freeze_then_recover(during_hold=True)  # a second freeze: a full hold again from its recovery
     for i, rd in enumerate(after[:self.HOLD]):
       with self.subTest(hold_frame=i + 1):
         self.assert_held(rd)
     self.assert_tracking(after[self.HOLD])
+
+  def test_short_repeat_during_the_hold_keeps_counting(self):
+    self.start()
+    self.freeze(1, 5)
+    scans = [2, 3, 3, 3, 3, 3] + [k % 4 for k in range(27)]  # scan 3 repeated 4 times: under the 5 that trip a freeze
+    self.assertEqual(len(scans), self.HOLD)
+    for i, scan in enumerate(scans):
+      with self.subTest(hold_frame=i + 1):
+        self.assert_held(self.step(scan))
+    self.assert_tracking(self.step(3))  # the repeats counted toward the hold
 
 
 if __name__ == '__main__':
