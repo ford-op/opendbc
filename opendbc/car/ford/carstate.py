@@ -6,7 +6,8 @@ from opendbc.car.ford.values import DBC, CarControllerParams, FordFlags
 from opendbc.car.interfaces import CarStateBase
 
 from opendbc.sunnypilot.car.ford.mads import MadsCarState
-from opendbc.sunnypilot.car.ford.bluepilot.carstate_ext import CarStateExt as BluePilotCarStateExt, can_messages  # BluePilot (bp-full)
+from opendbc.sunnypilot.car.ford.bluepilot.carstate_ext import CarStateExt as BluePilotCarStateExt, can_messages, \
+  CLUSTER_MIN_SPEED, CLUSTER_SPEED_HYST_GAP  # BluePilot (bp-full)
 from opendbc.sunnypilot.car.ford.carstate_ext import CarStateExt  # BluePilot (bp-full): Edge MK2
 
 ButtonType = structs.CarState.ButtonEvent.Type
@@ -20,6 +21,7 @@ class CarState(CarStateBase, MadsCarState, CarStateExt):
     MadsCarState.__init__(self, CP, CP_SP)
     CarStateExt.__init__(self, CP, CP_SP)  # BluePilot (bp-full): Edge MK2
     self.bp = BluePilotCarStateExt(CP)  # BluePilot (bp-full)
+    self.cluster_min_speed, self.cluster_speed_hyst_gap = CLUSTER_MIN_SPEED, CLUSTER_SPEED_HYST_GAP  # BluePilot (bp-full)
     can_define = CANDefine(DBC[CP.carFingerprint][Bus.pt])
     if CP.transmissionType == TransmissionType.automatic:
       self.shifter_values = can_define.dv["PowertrainData_10"]["TrnRng_D_Rq"]
@@ -68,7 +70,7 @@ class CarState(CarStateBase, MadsCarState, CarStateExt):
       ret.steerFaultTemporary |= cp.vl["Lane_Assist_Data3_FD1"]["LatCtlSte_D_Stat"] not in (1, 2, 3)
 
     # cruise state
-    is_metric = cp.vl["INSTRUMENT_PANEL"]["METRIC_UNITS"] == 1 if not self.CP.flags & FordFlags.CANFD else False
+    is_metric = cp.vl["INSTRUMENT_PANEL"]["METRIC_UNITS"] == 1 if not self.CP.flags & FordFlags.CANFD else self.bp.canfd_is_metric(cp_cam)  # BluePilot
     ret.cruiseState.speed = cp.vl["EngBrakeData"]["Veh_V_DsplyCcSet"] * (CV.KPH_TO_MS if is_metric else CV.MPH_TO_MS)
     ret.cruiseState.enabled = cp.vl["EngBrakeData"]["CcStat_D_Actl"] in (4, 5)
     ret.cruiseState.available = cp.vl["EngBrakeData"]["CcStat_D_Actl"] in (3, 4, 5)
@@ -82,6 +84,8 @@ class CarState(CarStateBase, MadsCarState, CarStateExt):
     if self.CP.transmissionType == TransmissionType.automatic:
       if self.CP.flags & FordFlags.ALT_STEER_ANGLE:  # BluePilot (bp-full): Edge MK2
         gear = CarStateExt.alt_gear(self, cp)
+      elif self.CP.flags & FordFlags.CANFD:  # BluePilot (bp-full): the shifter's request, as in BP7
+        gear = self.bp.canfd_gear(cp)
       else:
         gear = self.shifter_values.get(cp.vl["PowertrainData_10"]["TrnRng_D_Rq"])
       ret.gearShifter = self.parse_gear_shifter(gear)

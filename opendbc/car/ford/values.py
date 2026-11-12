@@ -163,7 +163,7 @@ class CAR(Platforms):
     CarSpecs(wheelbase=3.69, steerRatio=17.0),
   )
   FORD_F_150_LIGHTNING_MK1 = FordF150LightningPlatform(
-    [FordCarDocs("Ford F-150 Lightning 2022-23", "Co-Pilot360 Assist 2.0")],
+    [FordCarDocs("Ford F-150 Lightning 2022-25", "Co-Pilot360 Assist 2.0")],  # BluePilot (bp-full): BP7's years
     CarSpecs(wheelbase=3.70, steerRatio=16.9),
   )
   FORD_FOCUS_MK4 = FordPlatformConfig(
