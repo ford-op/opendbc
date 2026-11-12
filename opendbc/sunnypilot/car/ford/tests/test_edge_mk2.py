@@ -6,6 +6,7 @@ from opendbc.car import Bus, gen_empty_fingerprint, structs
 from opendbc.car.ford.carstate import CarState
 from opendbc.car.ford.interface import CarInterface
 from opendbc.car.ford.values import CAR, DBC
+from opendbc.car.fingerprints import MIGRATION
 from opendbc.car.fw_versions import match_fw_to_car
 from opendbc.car.structs import CarParams
 from opendbc.sunnypilot.car.ford.fingerprints_ext import match_vin_to_car
@@ -15,6 +16,9 @@ class TestEdgeFingerprint(unittest.TestCase):
   def test_vin(self):
     self.assertEqual(match_vin_to_car('2FMPK4J97NBXXXXXX'), {'FORD_EDGE_MK2'})  # Edge 2022
     self.assertEqual(match_vin_to_car('2FMPK4J97MBXXXXXX'), set())  # Edge 2021: not supported
+
+  def test_migration(self):
+    self.assertEqual(MIGRATION["FORD EDGE 2ND GEN"], CAR.FORD_EDGE_MK2)
 
   def test_firmware(self):
     # BluePilot 7's Edge firmware
@@ -70,7 +74,8 @@ class TestEdgeSteeringAngle(unittest.TestCase):
       "angle unknown": dict(abs_angle=32766 * 0.1 - 1000),
       "angle invalid": dict(abs_angle=None),
       "external angle requested": dict(abs_angle=90.0, ext_stat=1),
-      "park assist active": dict(abs_angle=90.0, apa_stat=2),
+      # ApaSys_D_Stat is 3 bits: only 0 (null) and 1 (off) are valid
+      **{f"park assist state {stat}": dict(abs_angle=90.0, apa_stat=stat) for stat in range(2, 8)},
     }
     for name, park_aid in invalid.items():
       with self.subTest(name):
@@ -102,6 +107,13 @@ class TestEdgeGear(unittest.TestCase):
                       (5, GearShifter.low)):
       with self.subTest(gear=gear):
         self.assertEqual(edge.update(0.0, gear=raw).gearShifter, gear)
+
+  def test_unmapped_lever_positions_are_unknown(self):
+    # as in BluePilot 7: Sport, the numbered gears and the fault values have no GearShifter
+    edge = EdgeCarState()
+    for raw in (4, *range(6, 16)):
+      with self.subTest(raw=raw):
+        self.assertEqual(edge.update(0.0, gear=raw).gearShifter, structs.CarState.GearShifter.unknown)
 
 
 def _pt_messages(car, fingerprint_addrs=()):
