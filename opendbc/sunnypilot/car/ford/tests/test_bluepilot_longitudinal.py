@@ -48,7 +48,8 @@ class TestLongitudinalExt(unittest.TestCase):
     self.assertEqual(gas, 0.0)
 
   def test_gaining_gas_cut_ends_at_1_5_s(self):
-    # 55 mph = 24.5872 m/s: 35.65 m is just under 1.5 s, 36.8808 m exactly 1.5 s, 38.11 m just over
+    # 55 mph = 24.5872 m/s: 35.65 m is 1.45 s, 36.8808 m exactly 1.5 s, 38.11 m 1.55 s
+    self.assertEqual(36.8808 / cs(55).out.vEgo, 1.5)  # else the exact-boundary case goes soft
     for d_rel, expected_gas in ((35.65, 0.0), (36.8808, 0.3), (38.11, 0.3)):
       with self.subTest(d_rel=d_rel):
         self.ext = LongitudinalExt()
@@ -58,6 +59,14 @@ class TestLongitudinalExt(unittest.TestCase):
   def test_gaining_starts_below_minus_0_1(self):
     # 1.2 s gap: gaining cuts gas to 0, pacing caps it at 0.2
     for v_rel, expected_gas in ((-0.15, 0.0), (-0.1, 0.2)):
+      with self.subTest(v_rel=v_rel):
+        self.ext = LongitudinalExt()
+        _, gas, _, _ = self.run_at(55, 0.3, 0.3, dict(dRel=30.0, vRel=v_rel, vLead=28.0))
+        self.assertAlmostEqual(gas, expected_gas)
+
+  def test_pacing_ends_at_plus_0_1(self):
+    # 1.2 s gap: pacing caps gas at 0.2, a trailing lead lets it through
+    for v_rel, expected_gas in ((0.1, 0.2), (0.15, 0.3)):
       with self.subTest(v_rel=v_rel):
         self.ext = LongitudinalExt()
         _, gas, _, _ = self.run_at(55, 0.3, 0.3, dict(dRel=30.0, vRel=v_rel, vLead=28.0))
