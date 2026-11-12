@@ -6,18 +6,20 @@ from opendbc.car.ford.values import DBC, CarControllerParams, FordFlags
 from opendbc.car.interfaces import CarStateBase
 
 from opendbc.sunnypilot.car.ford.mads import MadsCarState
-from opendbc.sunnypilot.car.ford.bluepilot.carstate_ext import CarStateExt, can_messages  # BluePilot (bp-full)
+from opendbc.sunnypilot.car.ford.bluepilot.carstate_ext import CarStateExt as BluePilotCarStateExt, can_messages  # BluePilot (bp-full)
+from opendbc.sunnypilot.car.ford.carstate_ext import CarStateExt  # BluePilot (bp-full): Edge MK2
 
 ButtonType = structs.CarState.ButtonEvent.Type
 GearShifter = structs.CarState.GearShifter
 TransmissionType = structs.CarParams.TransmissionType
 
 
-class CarState(CarStateBase, MadsCarState):
+class CarState(CarStateBase, MadsCarState, CarStateExt):
   def __init__(self, CP, CP_SP):
     CarStateBase.__init__(self, CP, CP_SP)
     MadsCarState.__init__(self, CP, CP_SP)
-    self.bp = CarStateExt(CP)  # BluePilot (bp-full)
+    CarStateExt.__init__(self, CP, CP_SP)  # BluePilot (bp-full): Edge MK2
+    self.bp = BluePilotCarStateExt(CP)  # BluePilot (bp-full)
     can_define = CANDefine(DBC[CP.carFingerprint][Bus.pt])
     if CP.transmissionType == TransmissionType.automatic:
       self.shifter_values = can_define.dv["PowertrainData_10"]["TrnRng_D_Rq"]
@@ -34,7 +36,8 @@ class CarState(CarStateBase, MadsCarState):
 
     # Occasionally on startup, the ABS module recalibrates the steering pinion offset, so we need to block engagement
     # The vehicle usually recovers out of this state within a minute of normal driving
-    ret.vehicleSensorsInvalid = cp.vl["SteeringPinion_Data"]["StePinCompAnEst_D_Qf"] != 3
+    if not self.CP.flags & FordFlags.ALT_STEER_ANGLE:  # BluePilot (bp-full): the Edge MK2 has no SteeringPinion_Data
+      ret.vehicleSensorsInvalid = cp.vl["SteeringPinion_Data"]["StePinCompAnEst_D_Qf"] != 3
 
     # car speed
     ret.vEgoRaw = cp.vl["BrakeSysFeatures"]["Veh_V_ActlBrk"] * CV.KPH_TO_MS
@@ -50,7 +53,10 @@ class CarState(CarStateBase, MadsCarState):
     ret.parkingBrake = cp.vl["DesiredTorqBrk"]["PrkBrkStatus"] in (1, 2)
 
     # steering wheel
-    ret.steeringAngleDeg = cp.vl["SteeringPinion_Data"]["StePinComp_An_Est"]
+    if self.CP.flags & FordFlags.ALT_STEER_ANGLE:  # BluePilot (bp-full): Edge MK2
+      ret.steeringAngleDeg = CarStateExt.update_alt_steering_angle(self, cp)
+    else:
+      ret.steeringAngleDeg = cp.vl["SteeringPinion_Data"]["StePinComp_An_Est"]
     ret.steeringTorque = cp.vl["EPAS_INFO"]["SteeringColumnTorque"]
     ret.steeringPressed = self.update_steering_pressed(abs(ret.steeringTorque) > CarControllerParams.STEER_DRIVER_ALLOWANCE, 5)
     ret.steerFaultTemporary = cp.vl["EPAS_INFO"]["EPAS_Failure"] == 1
@@ -74,7 +80,10 @@ class CarState(CarStateBase, MadsCarState):
 
     # gear
     if self.CP.transmissionType == TransmissionType.automatic:
-      gear = self.shifter_values.get(cp.vl["PowertrainData_10"]["TrnRng_D_Rq"])
+      if self.CP.flags & FordFlags.ALT_STEER_ANGLE:  # BluePilot (bp-full): Edge MK2
+        gear = CarStateExt.alt_gear(self, cp)
+      else:
+        gear = self.shifter_values.get(cp.vl["PowertrainData_10"]["TrnRng_D_Rq"])
       ret.gearShifter = self.parse_gear_shifter(gear)
     elif self.CP.transmissionType == TransmissionType.manual:
       if bool(cp.vl["BCM_Lamp_Stat_FD1"]["RvrseLghtOn_B_Stat"]):
@@ -126,6 +135,8 @@ class CarState(CarStateBase, MadsCarState):
   @staticmethod
   def get_can_parsers(CP, CP_SP):
     pt_messages, cam_messages = can_messages(CP)  # BluePilot (bp-full): its optional messages, before anything reads them
+    if CP.flags & FordFlags.ALT_STEER_ANGLE:  # BluePilot (bp-full): Edge MK2
+      pt_messages += CarStateExt.alt_steer_angle_messages()
     return {
       Bus.pt: CANParser(DBC[CP.carFingerprint][Bus.pt], pt_messages, CanBus(CP).main),
       Bus.cam: CANParser(DBC[CP.carFingerprint][Bus.pt], cam_messages, CanBus(CP).camera),
