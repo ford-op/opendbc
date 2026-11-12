@@ -13,6 +13,7 @@ CarControlSP.params (BPX_LONG_PARAMS), which the host publishes.
 import numpy as np
 
 from opendbc.car.ford.values import CarControllerParams
+from opendbc.sunnypilot.car.ford.bluepilot.published import published_bool
 
 # setting: BP7's default when the host doesn't publish it
 BPX_LONG_PARAMS = {
@@ -30,14 +31,6 @@ PRECHARGE_ACTUATE_TARGET = -0.12
 PRECHARGE_ACTUATE_RELEASE = -0.06
 
 
-def published_bool(CC_SP, key: str) -> bool:
-  for p in CC_SP.params:
-    if p.key == key:
-      v = p.value.decode() if isinstance(p.value, (bytes, bytearray)) else str(p.value)
-      return v.strip().lower() in ("1", "true")
-  return BPX_LONG_PARAMS[key]
-
-
 class LongitudinalExt:
   def __init__(self):
     self.bp_accel_last = 0.0
@@ -46,8 +39,8 @@ class LongitudinalExt:
 
   def update(self, CC, CC_SP, CS, op_accel: float, op_gas: float, accel_due_to_pitch: float):
     """Returns (accel, gas, brake_actuate, precharge_actuate) for the ACCDATA message."""
-    disable_bp_long = published_bool(CC_SP, "disable_BP_long_UI")
-    if published_bool(CC_SP, "disable_downhill_comp_UI") and accel_due_to_pitch < 0:
+    disable_bp_long = published_bool(CC_SP, "disable_BP_long_UI", BPX_LONG_PARAMS)
+    if published_bool(CC_SP, "disable_downhill_comp_UI", BPX_LONG_PARAMS) and accel_due_to_pitch < 0:
       accel_due_to_pitch = 0.
 
     accel_pitch_compensated = op_accel + accel_due_to_pitch

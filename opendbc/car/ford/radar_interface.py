@@ -20,6 +20,7 @@ DELPHI_MRR_RADAR_MSG_COUNT = 64
 DELPHI_MRR_RADAR_RANGE_COVERAGE = {0: 42, 1: 164, 2: 45, 3: 175}  # scan index to detection range (m)
 DELPHI_MRR_MIN_LONG_RANGE_DIST = 30  # meters
 DELPHI_MRR_CLUSTER_THRESHOLD = 5  # meters, lateral distance and relative velocity are weighted
+DELPHI_MRR_RADAR_UNAVAILABLE_HOLD_FRAMES = 33  # BluePilot: ~1 s of radar frames, see _update_delphi_mrr
 
 
 @dataclass
@@ -102,6 +103,7 @@ class RadarInterface(RadarInterfaceBase):
     self.scan_index_invalid_cnt = 0
     self.radar_unavailable_cnt = 0
     self.prev_headerScanIndex = 0
+    self.radar_unavailable_hold_frames = 0  # BluePilot
     if CP.radarUnavailable:
       self.rcp = None
     elif self.radar == RADAR.DELPHI_ESR:
@@ -182,6 +184,18 @@ class RadarInterface(RadarInterfaceBase):
     self.prev_headerScanIndex = headerScanIndex
 
     if self.radar_unavailable_cnt >= 5:
+      self.pts.clear()
+      self.points.clear()
+      self.clusters.clear()
+      ret.errors.radarUnavailableTemporary = True
+      self.radar_unavailable_hold_frames = DELPHI_MRR_RADAR_UNAVAILABLE_HOLD_FRAMES  # BluePilot: re-armed while frozen
+      return True
+
+    # BluePilot: the scan index un-freezes before the radar has valid detections again (0.6-0.9 s on
+    # Reverse -> Drive, Explorer MK6). Keep the radar unavailable a little longer so commIssue doesn't
+    # fire in that gap. BluePilotDev/bluepilot#188
+    if self.radar_unavailable_hold_frames > 0:
+      self.radar_unavailable_hold_frames -= 1
       self.pts.clear()
       self.points.clear()
       self.clusters.clear()
