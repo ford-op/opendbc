@@ -51,7 +51,7 @@ class TestSteerAssistRadar(unittest.TestCase):
 
 class TestDelphiMrrRadarHold(unittest.TestCase):
   """Delphi MRR on a CAN Ford: radarUnavailableTemporary stays set for 33 radar frames after a scan-index freeze clears."""
-  HOLD = 33
+  HOLD = 33  # BP7's value, written out here on purpose: the test must fail if the interface's constant changes
 
   def setUp(self):
     CP = CarInterface.get_params("FORD_EXPLORER_MK6", gen_empty_fingerprint(), [], False, False, False)
