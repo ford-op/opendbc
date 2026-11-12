@@ -6,22 +6,30 @@ BluePilot (full BluePilot only): Ford car state extras, from BluePilot 7.
 - The posted speed limit from the camera's traffic sign recognition (CarStateSP.speedLimit).
 - Hybrid/EV drive and battery values and the brake light state, as `car_state_bp` (the fields of
   cereal's CarStateBP); the host publishes them as carStateBP.
+- CAN FD: the set speed's unit and the gear from the shifter, as BP7 reads them; every Ford: BP7's dash speed
+  (vEgoCluster) floor and hysteresis.
 
 Called from opendbc/car/ford/carstate.py; the hybrid flags are set from the fingerprint in
 interfaces_ext.py.
 """
 from collections import namedtuple
 
-from opendbc.car import structs
+from opendbc.can import CANDefine
+from opendbc.car import Bus, structs
 from opendbc.car.common.conversions import Conversions as CV
-from opendbc.car.ford.values import CAR
+from opendbc.car.ford.values import CAR, DBC, FordFlags
 
 ButtonType = structs.CarState.ButtonEvent.Type
+TransmissionType = structs.CarParams.TransmissionType
 Button = namedtuple('Button', ['event_type', 'can_addr', 'can_msg', 'values'])
 
 # CarParams.flags bits, BluePilot's own (FordFlags has CANFD = 1, HAS_BSM = 2; 4 is kept for the Edge)
 FORD_FLAG_BP_HEV_CLUSTER_DATA = 8   # Cluster_HEV_Data2 present
 FORD_FLAG_BP_HEV_BATTERY_DATA = 16  # Battery_Traction_1/3/4_FD1 present
+
+# the dash speed (vEgoCluster) reads 0 below this and moves only by more than the gap (applied by the base interface)
+CLUSTER_MIN_SPEED = CV.KPH_TO_MS * 1.5
+CLUSTER_SPEED_HYST_GAP = CV.KPH_TO_MS / 2.
 
 # Combo buttons are listed twice, once per event they can emit (handled in CarStateExt.update)
 BUTTONS = [
@@ -64,6 +72,12 @@ def can_messages(CP) -> tuple[list, list]:
     pt += [(m, float('nan')) for m in ("Battery_Traction_1_FD1", "Battery_Traction_3_FD1", "Battery_Traction_4_FD1", "MtrTracData_1_FD1")]
   # the posted limit: optional on every Ford (BP7 required it on CAN FD, so a CAN FD Ford without sign recognition lost CAN validity)
   cam = [("Traffic_RecognitnData", float('nan'))]
+  # what the CAN FD reads below need, required at BP7's frequencies
+  if CP.flags & FordFlags.CANFD:
+    if CP.transmissionType == TransmissionType.automatic:
+      # BP7 still requires PowertrainData_10 on every automatic but the Edge, though CAN FD no longer reads it
+      pt += [("Gear_Shift_by_Wire_FD1", 10), ("PowertrainData_10", 10)]
+    cam.append(("IPMA_Data2", 1))
   return pt, cam
 
 
@@ -80,6 +94,8 @@ class CarStateExt:
     self.cruise_enabled_prev = False
     self.main_cruise_pressed_recently = False
     self.car_state_bp: dict = {}
+    if CP.flags & FordFlags.CANFD and CP.transmissionType == TransmissionType.automatic:
+      self.canfd_shifter_values = CANDefine(DBC[CP.carFingerprint][Bus.pt]).dv["Gear_Shift_by_Wire_FD1"]["TrnRng_D_RqGsm"]
 
   def update(self, ret: structs.CarState, ret_sp: structs.CarStateSP, cp, cp_cam) -> None:
     ret_sp.speedLimit = self.traffic_sign_speed_limit(cp_cam)
@@ -137,6 +153,14 @@ class CarStateExt:
 
     self.cruise_enabled_prev = cruise_enabled
     self.button_events = button_events
+
+  @staticmethod
+  def canfd_is_metric(cp_cam) -> bool:
+    """The set speed's unit on CAN FD: the camera's speed limit unit (1 = km/h, 2 = mph)."""
+    return cp_cam.vl["IPMA_Data2"]["IsaVLimUnit_D_Rq"] == 1
+
+  def canfd_gear(self, cp) -> str | None:
+    return self.canfd_shifter_values.get(cp.vl["Gear_Shift_by_Wire_FD1"]["TrnRng_D_RqGsm"])
 
   @staticmethod
   def traffic_sign_speed_limit(cp_cam) -> float:
