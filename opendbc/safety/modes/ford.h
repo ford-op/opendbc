@@ -221,6 +221,8 @@ static bool ford_tx_hook(const CANPacket_t *msg) {
     bool violation = false;
     violation |= ((msg->data[1] >> 0) & 1U) && !cruise_engaged_prev;   // Signal: CcAslButtnCnclPress (cancel)
     violation |= ((msg->data[3] >> 1) & 1U) && !controls_allowed;     // Signal: CcAsllButtnResPress (resume)
+    // BluePilot (bp-full): ICBM presses Set+/Set-; on ACC that's on but not engaged they engage it, like resume
+    violation |= (((msg->data[3] >> 3) & 1U) || ((msg->data[3] >> 4) & 1U)) && !controls_allowed;  // Signals: CcAslButtnSetIncPress, CcAslButtnSetDecPress
 
     if (violation) {
       tx = false;
