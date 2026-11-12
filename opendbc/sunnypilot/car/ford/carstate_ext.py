@@ -8,7 +8,7 @@ the Edge MK2). Called from opendbc/car/ford/carstate.py.
 """
 from opendbc.can import CANDefine
 from opendbc.car import Bus, structs
-from opendbc.car.ford.values import DBC
+from opendbc.car.ford.values import DBC, FordFlags
 
 # ExtSteeringAngleReq2 raw values meaning unknown / invalid
 EXT_ANGLE_NOT_AVAILABLE = (32766, 32767)
@@ -16,8 +16,9 @@ EXT_ANGLE_NOT_AVAILABLE = (32766, 32767)
 
 class CarStateExt:
   def __init__(self, CP: structs.CarParams, CP_SP: structs.CarParamsSP):
-    self.alt_shifter_values = CANDefine(DBC[CP.carFingerprint][Bus.pt]).dv["TransGearData"]["GearLvrPos_D_Actl"]
     self.steering_angle_offset_deg = 0.0
+    if CP.flags & FordFlags.ALT_STEER_ANGLE:
+      self.alt_shifter_values = CANDefine(DBC[CP.carFingerprint][Bus.pt]).dv["TransGearData"]["GearLvrPos_D_Actl"]
 
   @staticmethod
   def alt_steer_angle_messages() -> list[tuple[str, float]]:
