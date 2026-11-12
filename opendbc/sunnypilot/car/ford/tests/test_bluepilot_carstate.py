@@ -68,10 +68,16 @@ class TestComboButtonEvents(unittest.TestCase):
                      [(ButtonType.mainCruise, False), (ButtonType.setCruise, True), (ButtonType.setCruise, False)])
 
 
-def _car_state(car, extra_addrs=()):
+def _car_params(car, extra_addrs=()) -> structs.CarParams:
+  """CarParams as the interface decides them; extra_addrs: main-bus fingerprint addresses
+  (0x5A Gear_Shift_by_Wire_FD1 makes an automatic, its absence a manual)."""
   fingerprint = gen_empty_fingerprint()
   fingerprint[0].update({a: 8 for a in extra_addrs})
-  CP = CarInterface.get_params(car, fingerprint, [], False, False, False)
+  return CarInterface.get_params(car, fingerprint, [], False, False, False)
+
+
+def _car_state(car, extra_addrs=()):
+  CP = _car_params(car, extra_addrs)
   return CP, CarState(CP, structs.CarParamsSP())
 
 
@@ -129,13 +135,20 @@ class TestCarStateExt(unittest.TestCase):
         with self.subTest(name=name):
           self.assertEqual((states[name].frequency, states[name].ignore_alive), (freq, False))
 
+  def test_canfd_manual_gets_no_gear_messages(self):
+    # the gear registration is for automatics only: a manual reads neither message
+    CP, CS = _car_state(CAR.FORD_F_150_MK14)  # no shift-by-wire ECU, no 0x5A: a manual
+    self.assertEqual(CP.transmissionType, structs.CarParams.TransmissionType.manual)
+    pt, _ = CS.get_can_parsers(CP, structs.CarParamsSP()).values()
+    registered = {s.name for s in pt.message_states.values()}
+    self.assertFalse(registered & {"Gear_Shift_by_Wire_FD1", "PowertrainData_10"})
 
-class FordInterface:
-  """The real Ford CarInterface (car state plus the base interface's cluster speed handling), fed packed frames."""
+
+class PackedFrameHarness:
+  """Test helper: the real Ford CarInterface (car state plus the base interface's cluster speed handling), fed
+  packed frames."""
   def __init__(self, car, fingerprint_addrs=(0x5A,)):  # 0x5A Gear_Shift_by_Wire_FD1: an automatic
-    fingerprint = gen_empty_fingerprint()
-    fingerprint[0].update({a: 8 for a in fingerprint_addrs})
-    self.CP = CarInterface.get_params(car, fingerprint, [], False, False, False)
+    self.CP = _car_params(car, fingerprint_addrs)
     self.CI = CarInterface(self.CP, structs.CarParamsSP())
     self.packer = CANPacker(DBC[car][Bus.pt])
     self.pt, self.cam = self.CI.can_parsers[Bus.pt].bus, self.CI.can_parsers[Bus.cam].bus
@@ -153,7 +166,7 @@ class FordInterface:
 class TestCanFdSetSpeedUnit(unittest.TestCase):
   """BP7: a CAN FD Ford's set speed unit is the camera's speed limit unit (IPMA_Data2)."""
   def _set_speed(self, unit, displayed):
-    ford = FordInterface(CAR.FORD_F_150_MK14)
+    ford = PackedFrameHarness(CAR.FORD_F_150_MK14)
     for _ in range(2):  # the parser learns a message read for the first time on the next frame
       ret = ford.update(pt={"EngBrakeData": {"Veh_V_DsplyCcSet": displayed}}, cam={"IPMA_Data2": {"IsaVLimUnit_D_Rq": unit}})
     return ret.cruiseState.speed
@@ -168,11 +181,27 @@ class TestCanFdSetSpeedUnit(unittest.TestCase):
     self.assertAlmostEqual(self._set_speed(unit=0, displayed=62), 27.7165, places=3)
 
 
+class TestCanSetSpeedUnit(unittest.TestCase):
+  """A CAN Ford keeps upstream's unit, INSTRUMENT_PANEL.METRIC_UNITS, whatever IPMA_Data2 says."""
+  def _set_speed(self, metric_units, ipma_unit):
+    ford = PackedFrameHarness(CAR.FORD_ESCAPE_MK4)
+    for _ in range(2):
+      ret = ford.update(pt={"EngBrakeData": {"Veh_V_DsplyCcSet": 100}, "INSTRUMENT_PANEL": {"METRIC_UNITS": metric_units}},
+                        cam={"IPMA_Data2": {"IsaVLimUnit_D_Rq": ipma_unit}})
+    return ret.cruiseState.speed
+
+  def test_metric_panel(self):
+    self.assertAlmostEqual(self._set_speed(metric_units=1, ipma_unit=2), 27.7778, places=3)  # 100 km/h
+
+  def test_imperial_panel(self):
+    self.assertAlmostEqual(self._set_speed(metric_units=0, ipma_unit=1), 44.704, places=3)  # 100 mph
+
+
 class TestCanFdGear(unittest.TestCase):
   """BP7: a CAN FD Ford's gear is the shifter's request (Gear_Shift_by_Wire_FD1), not PowertrainData_10."""
   def test_gear_from_shift_by_wire(self):
     GearShifter = structs.CarState.GearShifter
-    ford = FordInterface(CAR.FORD_F_150_MK14)
+    ford = PackedFrameHarness(CAR.FORD_F_150_MK14)
     for raw, gear in ((0, GearShifter.park), (1, GearShifter.reverse), (2, GearShifter.neutral), (3, GearShifter.drive),
                       (5, GearShifter.low), (4, GearShifter.unknown), (15, GearShifter.unknown)):
       with self.subTest(raw=raw):
@@ -200,16 +229,16 @@ class TestClusterSpeed(unittest.TestCase):
   def test_zero_below_1_5_kph(self):
     for car in self.CARS:
       with self.subTest(car=car):
-        ford = FordInterface(car)
+        ford = PackedFrameHarness(car)
         self._steady(ford, 20)
-        self.assertEqual(self._steady(ford, 1.4).vEgoCluster, 0.0)
+        self.assertEqual(self._steady(ford, 1.49).vEgoCluster, 0.0)
         self._steady(ford, 20)
-        self.assertAlmostEqual(self._steady(ford, 1.6).vEgoCluster, _kph(2.1), places=3)  # falling: 0.5 km/h above
+        self.assertAlmostEqual(self._steady(ford, 1.51).vEgoCluster, _kph(2.01), places=3)  # falling: 0.5 km/h above
 
   def test_hysteresis(self):
     for car in self.CARS:
       with self.subTest(car=car):
-        ford = FordInterface(car)
+        ford = PackedFrameHarness(car)
         self.assertAlmostEqual(self._steady(ford, 20).vEgoCluster, _kph(19.5), places=3)  # rising: 0.5 km/h below
         self.assertAlmostEqual(self._steady(ford, 19.7, frames=1000).vEgoCluster, _kph(19.5), places=3)  # inside the gap: held
         self.assertAlmostEqual(self._steady(ford, 10).vEgoCluster, _kph(10.5), places=3)  # falling: 0.5 km/h above
