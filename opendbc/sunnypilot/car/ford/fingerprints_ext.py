@@ -20,6 +20,21 @@ FW_VERSIONS_EXT = {
       b'LX6C-2D053-KG\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00',
     ],
   },
+  CAR.FORD_EDGE_MK2: {
+    (Ecu.eps, 0x730, None): [
+      b'M2GC-14D003-AA\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00',
+    ],
+    (Ecu.abs, 0x760, None): [
+      b'M2GC-2D053-CB\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00',
+      b'M2GC-2D053-EA\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00',
+    ],
+    (Ecu.fwdRadar, 0x764, None): [
+      b'JX7T-14D049-AD\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00',
+    ],
+    (Ecu.fwdCamera, 0x706, None): [
+      b'KT4T-14F397-AF\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00',
+    ],
+  },
   CAR.FORD_ESCAPE_MK4_5: {
     (Ecu.eps, 0x730, None): [
       b'PZ11-14D003-AB\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00',
@@ -118,6 +133,7 @@ MACH_E_VDS_CODES = {'K1R', 'K1S', 'K2S', 'K3R', 'K3S', 'K4S'}
 # varies by model, model years = VIN position 10). A platform not listed stays out of VIN matching.
 VIN_PLATFORMS = {
   CAR.FORD_BRONCO_SPORT_MK1: ({'3FM'}, {'CR9'}, {MY_2021, MY_2022, MY_2023, MY_2024}),
+  CAR.FORD_EDGE_MK2: ({'2FM'}, {'PK4'}, {MY_2022}),
   CAR.FORD_ESCAPE_MK4: ({'1FM'}, {'CU0', 'CU9'}, {MY_2020, MY_2021, MY_2022}),  # CU0 = 4x2, CU9 = 4WD
   # same body codes as the MK4; the model year letter separates them
   CAR.FORD_ESCAPE_MK4_5: ({'1FM'}, {'CU0', 'CU9'}, {MY_2023, MY_2024}),

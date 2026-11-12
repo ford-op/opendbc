@@ -50,6 +50,7 @@ class FordFlags(IntFlag):
 
   # Static flags
   CANFD = 1
+  ALT_STEER_ANGLE = 4  # BluePilot: no SteeringPinion_Data (sunnypilot/car/ford/carstate_ext.py)
 
 
 class RADAR:
@@ -125,6 +126,11 @@ class CAR(Platforms):
   FORD_BRONCO_SPORT_MK1 = FordPlatformConfig(
     [FordCarDocs("Ford Bronco Sport 2021-24")],
     CarSpecs(wheelbase=2.67, steerRatio=17.7),
+  )
+  FORD_EDGE_MK2 = FordPlatformConfig(  # BluePilot
+    [FordCarDocs("Ford Edge 2022")],
+    CarSpecs(steerRatio=15.3, wheelbase=2.824),
+    flags=FordFlags.ALT_STEER_ANGLE,
   )
   FORD_ESCAPE_MK4 = FordPlatformConfig(
     [
