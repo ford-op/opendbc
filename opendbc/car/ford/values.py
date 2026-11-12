@@ -128,7 +128,7 @@ class CAR(Platforms):
     CarSpecs(wheelbase=2.67, steerRatio=17.7),
   )
   FORD_EDGE_MK2 = FordPlatformConfig(  # BluePilot
-    [FordCarDocs("Ford Edge 2022")],
+    [FordCarDocs("Ford Edge 2019-24")],
     CarSpecs(steerRatio=15.3, wheelbase=2.824),
     flags=FordFlags.ALT_STEER_ANGLE,
   )
