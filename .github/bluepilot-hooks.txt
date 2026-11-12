@@ -12,7 +12,7 @@ opendbc/car/ford/carcontroller.py      # one BluePilotLateral object, stock path
 opendbc/car/ford/carstate.py           # bp-full: cruise buttons, posted limit, hybrid values (sunnypilot/car/ford/bluepilot/carstate_ext.py) (#16)
 opendbc/car/ford/interface.py          # bp-full: the alpha toggle decides openpilot long vs stock ACC (sunnypilot/car/ford/bluepilot/interfaces_ext.py); every Ford ICBM-available (#16)
 opendbc/car/ford/fingerprints.py       # bp-full: merge the BluePilot-only firmware from sunnypilot/car/ford/fingerprints_ext.py (#16)
-opendbc/car/ford/radar_interface.py    # bp-full: Steer_Assist_Data as a one-track radar on CAN FD (sunnypilot/car/ford/bluepilot/radar_ext.py) (#16)
+opendbc/car/ford/radar_interface.py    # bp-full: Steer_Assist_Data as a one-track radar on CAN FD (sunnypilot/car/ford/bluepilot/radar_ext.py), Delphi MRR holds radarUnavailableTemporary 33 frames after a scan-index freeze (#16)
 opendbc/car/ford/values.py             # bp-full: VIN fallback hook, non-essential Lightning/Expedition EPS, Steer_Assist_Data radar on CAN FD (#16)
 opendbc/car/structs.py                 # CarControlSP.lateralInputs, typed by bluepilot_lateral/host_types.py; CarParamsSP.lateralInputsRequired
 opendbc/safety/modes/ford.h            # one call per hook site into bluepilot_lateral/safety/ford.h (#46); bp-full: CAN Ford stock TX set on the BP stock-ACC bit (#16)
