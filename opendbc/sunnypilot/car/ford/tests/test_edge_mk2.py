@@ -132,7 +132,7 @@ class TestEdgeMessages(unittest.TestCase):
       with self.subTest(car=car):
         msgs = _pt_messages(car)
         for name in self.STOCK:
-          self.assertIn(name, msgs)
+          self.assertTrue(name in msgs, name)
         for name in self.EDGE:
           self.assertNotIn(name, msgs)
 
