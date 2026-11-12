@@ -44,7 +44,7 @@ class TestMondeoFingerprint(unittest.TestCase):
 
 
 class TestMondeoPlatform(unittest.TestCase):
-  def test_canfd(self):
+  def test_platform_as_bp7_declares_it(self):
     self.assertEqual(CAR.FORD_MONDEO_MK5.config.flags, FordFlags.CANFD)
     CP = CarInterface.get_params(CAR.FORD_MONDEO_MK5, gen_empty_fingerprint(), [], False, False, False)
     self.assertAlmostEqual(CP.steerRatio, 14.8, places=5)
