@@ -148,7 +148,9 @@ jobs:
             fi
             n=0
             for name in "${REQUIRED[@]}"; do
-              state=$(jq -r --arg n "$name" 'first(.[] | select(.name == $n) | .bucket) // empty' <<<"${out:-[]}")
+              # a name passes only when every check run with it has: upstream's `tests` runs twice on the sync
+              # commit (the push to the mirror and the PR), and GitHub refuses the merge while either copy runs
+              state=$(jq -r --arg n "$name" '[.[] | select(.name == $n) | .bucket] | if length > 0 and all(. == "pass") then "pass" else empty end' <<<"${out:-[]}")
               [ "$state" = pass ] && n=$((n + 1))
             done
             [ "$n" = "${#REQUIRED[@]}" ] && return 0
