@@ -818,6 +818,24 @@
     ],
     "package": "Co-Pilot360 Assist"
   },
+  "Ford Mondeo 2014-22": {
+    "platform": "FORD_MONDEO_MK5",
+    "make": "Ford",
+    "brand": "ford",
+    "model": "Mondeo",
+    "year": [
+      "2014",
+      "2015",
+      "2016",
+      "2017",
+      "2018",
+      "2019",
+      "2020",
+      "2021",
+      "2022"
+    ],
+    "package": "Adaptive Cruise Control with Lane Centering"
+  },
   "Ford Mustang Mach-E 2021-24": {
     "platform": "FORD_MUSTANG_MACH_E_MK1",
     "make": "Ford",

@@ -59,6 +59,7 @@ non_tested_cars = [
   GM.CHEVROLET_MALIBU_NON_ACC_9TH_GEN,
   GM.CADILLAC_XT5_NON_ACC_1ST_GEN,
   FORD.FORD_EDGE_MK2,  # BluePilot: no route yet
+  FORD.FORD_MONDEO_MK5,  # BluePilot: no route yet
 ]
 
 

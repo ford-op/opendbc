@@ -90,6 +90,24 @@ FW_VERSIONS_EXT = {
       b'NX61-2D053-MD\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00',
     ],
   },
+  # BluePilot 7 kept only the part numbers from the first Mondeo capture: it also held NAK/error responses
+  # (a bare b'U', 0xff-padded blobs, a b'\xf1\x10DS-K2GC-3F964-AG...' adas entry at 0x730) that could match
+  # other Fords' replies and make the fingerprint ambiguous. Its engine (0x7e0) and debug (0x7d0) entries are left
+  # out here: upstream's Ford fingerprints hold only ABS, EPS, radar and camera entries.
+  CAR.FORD_MONDEO_MK5: {
+    (Ecu.fwdCamera, 0x706, None): [
+      b'KT4T-14F397-AE\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00',
+    ],
+    (Ecu.abs, 0x760, None): [
+      b'KG9C-2D053-DF\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00',
+    ],
+    (Ecu.eps, 0x730, None): [
+      b'K2GC-14D003-AJ\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00',
+    ],
+    (Ecu.fwdRadar, 0x764, None): [
+      b'JX7T-14D049-AD\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00',
+    ],
+  },
   CAR.FORD_MUSTANG_MACH_E_MK1: {
     (Ecu.fwdRadar, 0x764, None): [
       b'ML3T-14D049-AH\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00',
