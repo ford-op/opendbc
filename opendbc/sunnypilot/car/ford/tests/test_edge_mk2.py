@@ -18,8 +18,11 @@ class TestEdgeFingerprint(unittest.TestCase):
     self.assertEqual(match_vin_to_car('2FMPK4J97MBXXXXXX'), set())  # Edge 2021: not supported
 
   def test_vin_years_stay_2022_only(self):
-    # the docs name BP7's "2019-24", but the VIN fallback keeps matching only 2022
-    self.assertEqual(match_vin_to_car('2FMPK4J97PBXXXXXX'), set())  # Edge 2023: not supported
+    # the docs name is BP7's "2019-24", but the VIN fallback keeps matching only 2022
+    for year, letter in ((2019, 'K'), (2020, 'L'), (2021, 'M'), (2022, 'N'), (2023, 'P'), (2024, 'R')):
+      with self.subTest(year=year):
+        expected = {'FORD_EDGE_MK2'} if year == 2022 else set()
+        self.assertEqual(match_vin_to_car(f'2FMPK4J97{letter}BXXXXXX'), expected)
 
   def test_docs(self):
     # BluePilot 7's car list name, so a saved manual selection keeps working
