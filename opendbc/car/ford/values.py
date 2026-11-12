@@ -177,6 +177,10 @@ class CAR(Platforms):
     ],
     CarSpecs(wheelbase=3.076, steerRatio=17.0),
   )
+  FORD_MONDEO_MK5 = FordCANFDPlatformConfig(  # BluePilot
+    [FordCarDocs("Ford Mondeo 2014-22", "Adaptive Cruise Control with Lane Centering")],
+    CarSpecs(wheelbase=2.85, steerRatio=14.8),
+  )
   FORD_MUSTANG_MACH_E_MK1 = FordCANFDPlatformConfig(
     [FordCarDocs("Ford Mustang Mach-E 2021-24", "All", setup_video="https://www.youtube.com/watch?v=AR4_eTF3b_A")],
     CarSpecs(wheelbase=2.984, steerRatio=17.0),  # TODO: check steer ratio
