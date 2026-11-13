@@ -447,6 +447,7 @@ class CAR(Platforms):
       HyundaiCarDocs("Kia Niro EV 2020", "All", video="https://www.youtube.com/watch?v=lT7zcG6ZpGo", car_parts=CarParts.common([CarHarness.hyundai_f])),
       HyundaiCarDocs("Kia Niro EV 2021", "All", video="https://www.youtube.com/watch?v=lT7zcG6ZpGo", car_parts=CarParts.common([CarHarness.hyundai_c])),
       HyundaiCarDocs("Kia Niro EV 2022", "All", video="https://www.youtube.com/watch?v=lT7zcG6ZpGo", car_parts=CarParts.common([CarHarness.hyundai_h])),
+      HyundaiCarDocs("Kia Niro Plus EV 2024", car_parts=CarParts.common([CarHarness.hyundai_h])),
     ],
     CarSpecs(wheelbase=2.7, steerRatio=13.6, tireStiffnessFactor=0.385),  # average of all the cars
     flags=HyundaiFlags.MANDO_RADAR | HyundaiFlags.EV,
@@ -655,6 +656,10 @@ class CAR(Platforms):
     HYUNDAI_ELANTRA_2021.specs,
     flags=HyundaiFlags.CHECKSUM_CRC8,
   )
+  HYUNDAI_KONA_2ND_GEN = HyundaiCanFDPlatformConfig(
+    [HyundaiCarDocs("Hyundai Kona (without HDA II) 2024-25", car_parts=CarParts.common([CarHarness.hyundai_l]))],
+    HYUNDAI_KONA_EV_2ND_GEN.specs,
+  )
   HYUNDAI_KONA_NON_SCC = HyundaiNonSccPlatformConfig(
     [HyundaiNonSccCarDocs("Hyundai Kona Non-SCC 2019", car_parts=CarParts.common([CarHarness.hyundai_b]))],
     HYUNDAI_KONA.specs,
@@ -695,7 +700,7 @@ class CAR(Platforms):
     flags=HyundaiFlags.CHECKSUM_CRC8,
     sp_flags=HyundaiFlagsSP.NON_SCC_RADAR_FCA,
   )
-  HYUNDAI_SONATA_HEV_2024 = HyundaiCanFDPlatformConfig(
+  HYUNDAI_SONATA_2024 = HyundaiCanFDPlatformConfig(
     [HyundaiCarDocs("Hyundai Sonata Hybrid (without HDA II) 2024-26", car_parts=CarParts.common([CarHarness.hyundai_a]))],
     CarSpecs(wheelbase=2.84, steerRatio=13.27),
   )
