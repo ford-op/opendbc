@@ -135,6 +135,15 @@ class TestCarStateExt(unittest.TestCase):
         with self.subTest(name=name):
           self.assertEqual((states[name].frequency, states[name].ignore_alive), (freq, False))
 
+  def test_ipma_data_required_at_1hz_on_every_ford(self):
+    # BluePilotDev/bluepilot#287: registered up front so the parser never learns its rate from a burst
+    for car in (CAR.FORD_ESCAPE_MK4, CAR.FORD_F_150_MK14):  # CAN and CAN FD
+      with self.subTest(car=car):
+        CP, CS = _car_state(car)
+        _, cam = CS.get_can_parsers(CP, structs.CarParamsSP()).values()
+        states = {s.name: (s.frequency, s.ignore_alive) for s in cam.message_states.values()}
+        self.assertEqual(states.get("IPMA_Data"), (1, False))
+
   def test_canfd_manual_gets_no_gear_messages(self):
     # the gear registration is for automatics only: a manual reads neither message
     CP, CS = _car_state(CAR.FORD_F_150_MK14)  # no shift-by-wire ECU, no 0x5A: a manual
@@ -195,6 +204,23 @@ class TestCanSetSpeedUnit(unittest.TestCase):
 
   def test_imperial_panel(self):
     self.assertAlmostEqual(self._set_speed(metric_units=0, ipma_unit=1), 44.704, places=3)  # 100 mph
+
+
+class TestIpmaDataBurst(unittest.TestCase):
+  """BluePilotDev/bluepilot#287: the camera sends IPMA_Data at 1 Hz but can burst it at 11-21 Hz. A parser left to
+  learn its rate from a startup burst times it out under 1 s, and CAN validity drops every second after."""
+  def test_startup_burst_then_1hz_stays_valid(self):
+    for car in (CAR.FORD_ESCAPE_MK4, CAR.FORD_F_150_MK14):  # CAN and CAN FD
+      with self.subTest(car=car):
+        ford = PackedFrameHarness(car)
+        burst = {i * 8 for i in range(16)}  # every 80 ms for 1.2 s (12.5 Hz), in 10 ms frames
+        steady = {120 + i * 100 for i in range(1, 6)}  # then 1 Hz for 5 s
+        cam = ford.CI.can_parsers[Bus.cam]
+        for frame in range(max(steady) + 1):
+          ford.update(cam={"IPMA_Data": {}} if frame in burst | steady else None)
+          state = next(s for s in cam.message_states.values() if s.name == "IPMA_Data")
+          if state.timestamps:
+            self.assertTrue(state.valid(ford.t, False), f"IPMA_Data timed out at {frame * 10} ms")
 
 
 class TestCanFdGear(unittest.TestCase):
